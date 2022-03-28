@@ -49,17 +49,11 @@ def server():
                 serverSocket.close()
 
                 #import server private key
-                with open(os.path.join(sys.path[0], "server_private.pem"), "rb") as f:
+                with open(os.path.join(sys.path[0], "keys", "server_private.pem"), "rb") as f:
                     key = f.read()
                     #create cipher block for decryption
                     privkey = RSA.import_key(key)
                     cipher_dec = PKCS1_OAEP.new(privkey)
-                #import server public key
-                with open(os.path.join(sys.path[0], "server_public.pem"), "rb") as f:
-                    key = f.read()
-                    #create cipher block for encryption
-                    pubkey = RSA.import_key(key)
-                    cipher_enc = PKCS1_OAEP.new(pubkey)
 
                 #Receive client message and decrypt message
                 encrypted_message = connectionSocket.recv(2048)
@@ -78,6 +72,14 @@ def server():
                         break
                 #If there is a match, send symmetric pw
                 if (counter == 1):
+                    #import client public key
+                    clientkeypath = username + "_public.pem"
+                    with open(os.path.join(sys.path[0], "keys", clientkeypath), "rb") as f:
+                        key = f.read()
+                        #create cipher block for encryption
+                        pubkey = RSA.import_key(key)
+                        cipher_enc = PKCS1_OAEP.new(pubkey)
+
                     #generate sym pw and send to client
                     KeyLen = 256
                     sym_key = get_random_bytes(int(KeyLen/8))
@@ -101,7 +103,7 @@ def server():
                 #Receive client response and send menu
                 encrypted_response = connectionSocket.recv(2048)
                 response = unpad(cipher.decrypt(encrypted_response), 16).decode('ascii')
-                menu = "Select the operation:\n\t1) Create and send an email\n\t2) Display the inbox list\n\t3) Display the email contents\n\t4) Terminate the connection\nchoice: "
+                menu = "Select the operation:\n\t1) Create and send an email\n\t2) Display the inbox list\n\t3) Display the email contents\n\t4) Terminate the connection\n\nchoice: "
                 encrypted_menu = cipher.encrypt(pad(menu.encode('ascii'), 16))
                 connectionSocket.send(encrypted_menu)
 
