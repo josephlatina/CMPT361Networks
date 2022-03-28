@@ -8,6 +8,8 @@ import sys
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Random import get_random_bytes
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
 
 def server():
     #server port
@@ -74,7 +76,7 @@ def server():
                     if (user == username and pw == password):
                         counter += 1
                         break
-                #If there is a match, send menu
+                #If there is a match, send symmetric pw
                 if (counter == 1):
                     #generate sym pw and send to client
                     KeyLen = 256
@@ -83,6 +85,7 @@ def server():
                     connectionSocket.send(encrypted_key)
                     #print on server screen
                     print("Connection Accepted and Symmetric Key Generated for client: username")
+                #Otherwise,
                 else:
                     #send error message
                     connectionSocket.send("Invalid username or password".encode('ascii'))
@@ -93,10 +96,35 @@ def server():
                     return
 
                 #Generate ciphering block for symm key
-                
+                cipher = AES.new(sym_key, AES.MODE_ECB)
 
                 #Receive client response and send menu
                 encrypted_response = connectionSocket.recv(2048)
+                response = unpad(cipher.decrypt(encrypted_response), 16).decode('ascii')
+                menu = "Select the operation:\n\t1) Create and send an email\n\t2) Display the inbox list\n\t3) Display the email contents\n\t4) Terminate the connection\nchoice: "
+                encrypted_menu = cipher.encrypt(pad(menu.encode('ascii'), 16))
+                connectionSocket.send(encrypted_menu)
+
+                #Receive client choice
+                encrypted_choice = connectionSocket.recv(2048)
+                choice = unpad(cipher.decrypt(encrypted_choice), 16).decode('ascii')
+
+                #Perform the associated subprotocol
+                while (int(choice) != 4):
+                    #Sending Email Subprotocol
+                    if (int(choice) == 1):
+                        pass
+                    #Viewing Inbox Subprotocol
+                    elif (int(choice) == 2):
+                        pass
+                    #Viewing Email Subprotocol
+                    elif (int(choice) == 3):
+                        pass
+
+                #Connection Termination Subprotocol
+                connectionSocket.close()
+                print("Terminating connection with " + username)
+                return
                 
 
             # 2: For parent process
