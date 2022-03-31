@@ -74,7 +74,7 @@ def server():
                 if (counter == 1):
                     #import client public key
                     clientkeypath = username + "_public.pem"
-                    with open(os.path.join(sys.path[0], "keys", clientkeypath), "rb") as f:
+                    with open(os.path.join(sys.path[0], "keys", clientkeypath), "r") as f:
                         key = f.read()
                         #create cipher block for encryption
                         pubkey = RSA.import_key(key)
@@ -83,10 +83,10 @@ def server():
                     #generate sym pw and send to client
                     KeyLen = 256
                     sym_key = get_random_bytes(int(KeyLen/8))
-                    encrypted_key = cipher_enc.encrypt(sym_key.encode('ascii'))
+                    encrypted_key = cipher_enc.encrypt(sym_key)
                     connectionSocket.send(encrypted_key)
                     #print on server screen
-                    print("Connection Accepted and Symmetric Key Generated for client: username")
+                    print("Connection Accepted and Symmetric Key Generated for client: "  + username)
                 #Otherwise,
                 else:
                     #send error message
@@ -103,7 +103,7 @@ def server():
                 #Receive client response and send menu
                 encrypted_response = connectionSocket.recv(2048)
                 response = unpad(cipher.decrypt(encrypted_response), 16).decode('ascii')
-                menu = "Select the operation:\n\t1) Create and send an email\n\t2) Display the inbox list\n\t3) Display the email contents\n\t4) Terminate the connection\n\nchoice: "
+                menu = "Select the operation:\n\t1) Create and send an email\n\t2) Display the inbox list\n\t3) Display the email contents\n\t4) Terminate the connection\n\n\tchoice: "
                 encrypted_menu = cipher.encrypt(pad(menu.encode('ascii'), 16))
                 connectionSocket.send(encrypted_menu)
 
@@ -122,10 +122,13 @@ def server():
                     #Viewing Email Subprotocol
                     elif (int(choice) == 3):
                         pass
+                    #Receive client choice
+                    encrypted_choice = connectionSocket.recv(2048)
+                    choice = unpad(cipher.decrypt(encrypted_choice), 16).decode('ascii')
 
                 #Connection Termination Subprotocol
-                connectionSocket.close()
                 print("Terminating connection with " + username)
+                connectionSocket.close()
                 return
                 
 
@@ -140,10 +143,10 @@ def server():
             print("an error occurred while connecting: ", e)
             serverSocket.close()
             sys.exit(1)
-        except:
-            print('Goodbye')
-            serverSocket.close() 
-            sys.exit(0)
+        # except:
+        #     print('Goodbye')
+        #     serverSocket.close() 
+        #     sys.exit(0)
 
 
 #----------
