@@ -34,14 +34,6 @@ def client():
         password = input("Enter your password: ")
         user_pass = username + " " + password
 
-        #import client private key
-        clientkeypath = username + "_private.pem"
-        with open(os.path.join(sys.path[0], "keys", clientkeypath), "rb") as f:
-            key = f.read()
-            #create cipher block for encryption
-            privkey = RSA.import_key(key)
-            cipher_dec = PKCS1_OAEP.new(privkey)
-
         #import server public key
         with open(os.path.join(sys.path[0], "keys", "server_public.pem"), "rb") as f:
             key = f.read()
@@ -54,17 +46,23 @@ def client():
         clientSocket.send(encrypted_user_pass)
 
         #accept server reply
-        response = clientSocket.recv(2048).decode('ascii')
+        response = clientSocket.recv(2048)
         #if invalid user, terminate connection
-        if (response == "Invalid username or password"):
+        if (response == "Invalid username or password".encode('ascii')):
             print("Invalid username or password.\nTerminating.")
             clientSocket.close()
             return
         #otherwise, store the received symmetric key
         else:
+            #import client private key
+            clientkeypath = username + "_private.pem"
+            with open(os.path.join(sys.path[0], "keys", clientkeypath), "rb+") as f:
+                key = f.read()
+                #create cipher block for encryption
+                privkey = RSA.import_key(key)
+                cipher_dec = PKCS1_OAEP.new(privkey)
             #decrypt symm key (decrypted with client private key)
-            encrypted_key = clientSocket.recv(2048)
-            sym_key = cipher_dec.decrypt(encrypted_key).decode('ascii')
+            sym_key = cipher_dec.decrypt(response)
 
         #Generate ciphering block for symm key
         cipher = AES.new(sym_key, AES.MODE_ECB)
