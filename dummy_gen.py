@@ -2,7 +2,7 @@
 # CMPT361 Project - Secure Mail Transfer Protocol
 #Purpose: Generate dummy mail in the server directory for debugging. 
 import os
-from datetime import date
+from datetime import datetime
 # for each user
 for i in range(5):
     # build name
@@ -25,13 +25,13 @@ for i in range(5):
 
         # make message source clientx where x = (5-i)  
         f.write(srcusr+'\n')
-        
-        # write a random time and date
-        f.write(str(date(2020,4,19))+'\n')
 
         # make message destination for user 'i'
         f.write(name+'\n')
-        
+
+        # write a random time and date
+        f.write(str(datetime(2020,4,19+n,6+i,n+i))+'\n')
+
         # write title 
         f.write("This is a message "+str(n)+" for client "+str(i)+'\n')
         
