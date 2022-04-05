@@ -143,6 +143,30 @@ def client():
                 viewIndex = input("Enter the email index you wish to view: ")
                 encryptedMessage = cipher.encrypt(pad(viewIndex.encode('ascii'), 16))
                 clientSocket.send(encryptedMessage)               
+                
+                
+                #Recieve the size of file to prepare for safe recieving of actual file
+                decryptedSizeMessage = clientSocket.recv(2048)
+                sizeMessage = unpad(cipher.decrypt(decryptedSizeMessage), 16).decode('ascii')
+                fileSize = int(sizeMessage)
+                #sends the okay to send file (dummy send)
+                encryptedMessage = cipher.encrypt(pad("Ok".encode('ascii'), 16))
+                clientSocket.send(encryptedMessage) 
+
+                fileToPrint = "\n"
+                while fileSize > 0:
+                    if fileSize > 2048:
+                        encrypted_response = clientSocket.recv(2048)
+                        response = cipher.decrypt(encrypted_response).decode('ascii')
+                        fileToPrint += response
+                        fileSize -= 2048
+                    else:
+                        encrypted_response = clientSocket.recv(2048)
+                        response = unpad(cipher.decrypt(encrypted_response), 16).decode('ascii')
+                        fileToPrint += response
+                        fileSize -= 2048
+                
+                print(fileToPrint)              
 
                 pass
             #prompt user again for choice
