@@ -221,7 +221,7 @@ def GetContent():
                 if file_size > 1000000:
                     print("message content exceeds maximum length.")
                 
-                if file_size == 0:
+                elif file_size == 0:
                     print("message content is empty")
                 
                 else:
@@ -238,7 +238,7 @@ def GetContent():
             if len(contentMessage) > 1000000:
                 print("message content exceeds maximum length.")
             
-            if len(contentMessage) == 0:
+            elif len(contentMessage) == 0:
                 print("message content is empty")
             
             else:
