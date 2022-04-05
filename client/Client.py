@@ -1,9 +1,7 @@
 # Group Member Names: Joseph Latina, Andrew Numrich, Raphael Wong
 # CMPT361 Project - Secure Mail Transfer Protocol
 
-import email
 import json
-from ossaudiodev import control_names
 import socket
 import os, glob, datetime
 import sys
@@ -167,8 +165,6 @@ def client():
                         fileSize -= 2048
                 
                 print(fileToPrint)              
-
-                pass
             #prompt user again for choice
             choice = input(menu)
 
