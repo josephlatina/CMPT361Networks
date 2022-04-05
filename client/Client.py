@@ -27,6 +27,9 @@ def viewinbox_handle(csock,cipher):
     header = tablestr("Index",index_len)+'    '+tablestr("From",from_len)+'    '+tablestr("DateTime",dt_len)+'    '+tablestr("Title",title_len)
     print(header)
 
+    # signal the client is ready to recieve list data
+    csock.send("0".encode('ascii'))
+
     # receive each list item, display them as they are recieved 
     inbox = []
     for i in range(int(inbox_len)):
