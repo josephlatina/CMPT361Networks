@@ -11,6 +11,33 @@ from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
+# String resizing for table pretty print
+def tablestr(text,length):
+    dif = int(length)-len(text)
+    return text+(" "*dif*(dif > 0))
+
+def viewinbox_handle(csock,cipher):
+    # wait for server to sort list and send list length and pretty printing table lengths
+    header_enc = csock.recv(2048)
+    inbox_len, index_len, from_len, dt_len, title_len = (unpad(cipher.decrypt(header_enc), 16).decode('ascii')).split(";")
+
+    # print table header
+    header = tablestr("Index",index_len)+'    '+tablestr("From",from_len)+'    '+tablestr("DateTime",dt_len)+'    '+tablestr("Title",title_len)
+    print(header)
+
+    # receive each list item, display them as they are recieved 
+    inbox = []
+    for i in range(int(inbox_len)):
+        next = csock.recv(2048)
+        index, src, dt, title = (unpad(cipher.decrypt(next), 16).decode('ascii')).split(";")
+        # print contents
+        contents = tablestr(index,index_len)+'    '+tablestr(src,from_len)+'    '+tablestr(dt,dt_len)+'    '+tablestr(title,title_len)
+        print(contents)
+        inbox.append((index,src,dt,title))
+        # signal the client is ready for the next list item
+        csock.send("0".encode('ascii'))
+
+
 def client():
     #Server Port
     serverPort = 13000
@@ -84,7 +111,7 @@ def client():
             if (int(choice) == 1):
                 pass
             elif (int(choice) == 2):
-                pass
+                viewinbox_handle(clientSocket,cipher)
             elif (int(choice) == 3):
                 pass
             #prompt user again for choice
