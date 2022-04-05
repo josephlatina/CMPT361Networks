@@ -1,4 +1,4 @@
-# Group Member Names: Joseph Latina, Andrew, Raphael Wong
+# Group Member Names: Joseph Latina, Andrew Numrich, Raphael Wong
 # CMPT361 Project - Secure Mail Transfer Protocol
 
 import json
