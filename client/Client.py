@@ -1,7 +1,9 @@
-# Group Member Names: Joseph Latina, Andrew, Raphelos
+# Group Member Names: Joseph Latina, Andrew, Raphael Wong
 # CMPT361 Project - Secure Mail Transfer Protocol
 
+import email
 import json
+from ossaudiodev import control_names
 import socket
 import os, glob, datetime
 import sys
@@ -108,11 +110,37 @@ def client():
             encrypted_choice = cipher.encrypt(pad(choice.encode('ascii'), 16))
             clientSocket.send(encrypted_choice)
             #start the associated subprotocols
+            
             if (int(choice) == 1):
-                pass
+                fullMessage = ""
+                destinationMessage = GetDestination()
+                titleMessage = GetTitle()
+                contentMessage = GetContent()
+                contentLength = len(contentMessage)
+
+                fullMessage = username + '\n' +destinationMessage + '\n' + titleMessage + '\n' + str(contentLength)
+
+                encryptedMessage = cipher.encrypt(pad(fullMessage.encode('ascii'), 16))
+                clientSocket.send(encryptedMessage)
+                
+                #Recieve the okay to send content (dummy recv)
+                decryptedMessage = clientSocket.recv(2048)
+                message = unpad(cipher.decrypt(encrypted_menu), 16).decode('ascii')
+
+                #send content to server
+                encryptedMessage = cipher.encrypt(pad(contentMessage.encode('ascii'), 16))
+                clientSocket.send(encryptedMessage)
+
+                print("The message is sent to the server.")
+ 
             elif (int(choice) == 2):
                 viewinbox_handle(clientSocket,cipher)
             elif (int(choice) == 3):
+                #Get the index the user wishes to view and send it over
+                viewIndex = input("Enter the email index you wish to view: ")
+                encryptedMessage = cipher.encrypt(pad(viewIndex.encode('ascii'), 16))
+                clientSocket.send(encryptedMessage)               
+
                 pass
             #prompt user again for choice
             choice = input(menu)
@@ -130,6 +158,69 @@ def client():
         clientSocket.close()
         sys.exit(1)
 
+#Helper function for Sending Email Subprotocol that prompts the user for the Destination the email is going to be sent to
+def GetDestination():
+    while True:
+        flag = 0
+        destinationMessage = input("Enter destinations (seperated by ;): ")
+        destinationsList = destinationMessage.split(';')
+        emailList = ['client1','client2','client3','client4','client5']
+        for destination in destinationsList:
+            if destination not in emailList:
+                flag = 1
+        if flag == 0:
+            break
+        else:
+            print("One or more email does not exist")
+    return destinationMessage
+
+#Helper function for Sending Email Subprotocol that prompts the user for the Title of email
+def GetTitle():
+    while True:
+        titleMessage = input("Enter the title: ")
+        if titleMessage != "":
+            break
+        else:
+            print("Title cannot be empty. Try Again.")
+    return titleMessage
+
+#Helper function for Sending Email Subprotocol to get the contents the user wants to send
+def GetContent():
+    while True:
+        question = input("Would you like to load contents from a file? (Y/N) ")
+        
+        if question == "Y" or question == "y":
+            filename = input("Enter the filename: ")
+
+            if os.path.isfile(filename):
+                file_size = os.path.getsize(filename)
+
+                if file_size > 1000000:
+                    print("message content exceeds maximum length.")
+                
+                if file_size == 0:
+                    print("message content is empty")
+                
+                else:
+                    file = open(filename,'r')
+                    contentMessage = file.read()
+                    break
+            else:
+                print("File does not exist.")
+                    
+                    
+        elif question == "N" or question == "n":
+            contentMessage = input("Enter the message contents: ")
+            
+            if len(contentMessage) > 1000000:
+                print("message content exceeds maximum length.")
+            
+            if len(contentMessage) == 0:
+                print("message content is empty")
+            
+            else:
+                break
+    return contentMessage
 
 #----------
 client()

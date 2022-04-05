@@ -1,10 +1,12 @@
-# Group Member Names: Joseph Latina, Andrew, Raphelos
+# Group Member Names: Joseph Latina, Andrew, Raphael Wong
 # CMPT361 Project - Secure Mail Transfer Protocol
 
 import json
 import socket
+import os, glob, datetime
+from datetime import datetime
+from sqlite3 import connect
 import sys
-import os
 from datetime import datetime
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
@@ -216,6 +218,14 @@ def server():
                 #Generate ciphering block for symm key
                 cipher = AES.new(sym_key, AES.MODE_ECB)
 
+                #Create 5 directory inboxes for the 5 clients, skips this step if they already exists
+                if not os.path.exists("client1"):
+                    os.mkdir("client1")
+                    os.mkdir("client2")
+                    os.mkdir("client3")
+                    os.mkdir("client4")
+                    os.mkdir("client5")
+
                 #Receive client response and send menu
                 encrypted_response = connectionSocket.recv(2048)
                 response = unpad(cipher.decrypt(encrypted_response), 16).decode('ascii')
@@ -231,12 +241,74 @@ def server():
                 while (int(choice) != 4):
                     #Sending Email Subprotocol
                     if (int(choice) == 1):
-                        pass
+                        encrypted_response = connectionSocket.recv(2048)
+                        response = unpad(cipher.decrypt(encrypted_response), 16).decode('ascii')
+
+                        #break up the message to obtain certain parts as listed below
+                        responseList = response.split('\n')
+                        #From:
+                        fromUser = responseList[0]
+                        #To:
+                        destinations = responseList[1]
+                        #Title:
+                        title = responseList[2]
+                        #List of client(s) to send email to
+                        destinationsList = destinations.split(';')
+
+                        #Need the content length to ensure safe recieving from client
+                        contentLength = int(responseList[3])
+
+                        #Need this for summary message
+                        contentLengthMessage = responseList[3]
+
+                        #send the okay to recieve the content (dummy send)
+                        encryptedMessage = cipher.encrypt(pad("ok".encode('ascii'), 16))
+                        connectionSocket.send(encryptedMessage)
+
+                        #Logic for safely recieving content message that may exceed 2048 bytes from client
+                        content = ""
+                        while contentLength > 0:
+                            if contentLength > 2048:
+                                encrypted_response = connectionSocket.recv(2048)
+                                response = cipher.decrypt(encrypted_response).decode('ascii')
+                                content += response
+                                contentLength -= 2048
+                            else:
+                                encrypted_response = connectionSocket.recv(2048)
+                                response = unpad(cipher.decrypt(encrypted_response), 16).decode('ascii')
+                                content += response
+                                contentLength -= 2048
+
+                        
+                        #The time message is recieved
+                        timeRecieved = str(datetime.now())
+                        
+                        #The email to be saved in a clients inbox
+                        messageToSave = "From: " + fromUser + "\nTo: " + destinations + "\nTime and Date Recieved: " + timeRecieved + "\nTitle: " + title + "\nContent Length: " + contentLengthMessage + "\nContents:\n" + content
+
+                        #print a message that says an email from user to destination(s) has content length of #.
+                        messageSent = "An email from " + fromUser + " is sent to " + destinations + " has a content length of " + contentLengthMessage + " ."             
+                        print(messageSent)
+
+                        #saving email to clients inbox
+                        for user in destinationsList:
+                            if os.path.exists(user):
+                                with open(os.path.join(user,fromUser + "_" + title + ".txt"),'w') as fp:
+                                    fp.write(messageToSave)
+                                    fp.close()
+                            
                     #Viewing Inbox Subprotocol
                     elif (int(choice) == 2):
                         view_inbox(username, cipher, connectionSocket)
                     #Viewing Email Subprotocol
                     elif (int(choice) == 3):
+                        #recieve index
+                        encryptedIndex = connectionSocket.recv(2048)
+                        index = unpad(cipher.decrypt(encryptedIndex), 16).decode('ascii')
+
+                        #look for title
+                        
+
                         pass
                     #Receive client choice
                     encrypted_choice = connectionSocket.recv(2048)
