@@ -1,4 +1,4 @@
-# Group Member Names: Joseph Latina, Andrew, Raphelos
+# Group Member Names: Joseph Latina, Andrew Numrich, Raphelos Wong
 # CMPT361 Project - Secure Mail Transfer Protocol
 #Purpose: Generate dummy mail in the server directory for debugging. 
 import os
