@@ -118,6 +118,9 @@ def view_inbox(username, cipher, connection):
     # Send encrypted header data
     enc_header = cipher.encrypt(pad(header.encode('ascii'), 16))
     connection.send(enc_header)
+    # block until confirmation from client
+    connection.recv(1)
+
     # Encrypt and send each table item
     inbox_len = len(inbox)
     for i in range(inbox_len):
@@ -126,7 +129,7 @@ def view_inbox(username, cipher, connection):
         datastr = str(i+1)+";"+src+";"+str(dt)+";"+title
         enc_datastr = cipher.encrypt(pad(datastr.encode('ascii'), 16))
         connection.send(enc_datastr)
-        # block until confirmation from socket
+        # block until confirmation from client
         connection.recv(1)
 
 def server():
