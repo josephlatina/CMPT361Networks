@@ -5,9 +5,7 @@ import json
 import socket
 import os, glob, datetime
 from datetime import datetime
-from sqlite3 import connect
 import sys
-from datetime import datetime
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Random import get_random_bytes
@@ -29,7 +27,7 @@ def read_email_header(filepath):
         dtstr = f.readline()[len("Time and Date recieved: "):].replace('\n',"") # date/time
         title = f.readline()[len("Title: "):].replace('\n',"") # title
         f.close()
-    dt = datetime.fromisoformat(dtstr) 
+    dt = datetime.strptime(dtstr, "%Y-%m-%d %H:%M:%S.%f")
     return (srcusr,dt,title)
 
 # Get a filename by an email's index in the user's inbox
@@ -37,12 +35,12 @@ def get_file(username,index):
     global user_inbox
     
     # load the user's inbox data if it isnt loaded yet
-    if not user_inbox.has_key(username):
+    if not username in user_inbox:
         cache_inbox(username)
     
     # get pointers to inbox and the email at the desired index 
     inbox = user_inbox[username][1]
-    src,dt,title = inbox[index]
+    src,dt,title = inbox[int(index)-1]
 
     return src+'_'+title+".txt"
 
@@ -315,10 +313,10 @@ def server():
             
                         #open the file to read, get the size and send it to the client
                         with open(os.path.join(userPath, fullTitle),"r") as f:
-                        viewFile = f.read()
-                        sizeOfFile = str(len(viewFile))
-                        encryptedMessage = cipher.encrypt(pad(sizeOfFile.encode('ascii'), 16))
-                        connectionSocket.send(encryptedMessage)
+                            viewFile = f.read()
+                            sizeOfFile = str(len(viewFile))
+                            encryptedMessage = cipher.encrypt(pad(sizeOfFile.encode('ascii'), 16))
+                            connectionSocket.send(encryptedMessage)
                 
                         #recieves the okay to send file (dummy recv)
                         decryptedMessage = connectionSocket.recv(2048)
