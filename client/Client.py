@@ -201,10 +201,12 @@ def GetDestination():
 def GetTitle():
     while True:
         titleMessage = input("Enter the title: ")
-        if titleMessage != "":
-            break
-        else:
+        if titleMessage == "":
             print("Title cannot be empty. Try Again.")
+        elif len(titleMessage) > 100:
+            print("Title exceeds maximum length. Try Again.")
+        else:
+            break
     return titleMessage
 
 #Helper function for Sending Email Subprotocol to get the contents the user wants to send
