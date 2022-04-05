@@ -6,6 +6,12 @@ import os
 import sys
 from Crypto.PublicKey import RSA
 
+#Create keys directory in client folder if it doesn't exist already
+if (os.path.isdir("client/keys") == False):
+    os.mkdir("client/keys")
+#Create keys directory in server folder if it doesn't exist already
+if (os.path.isdir("server/keys") == False):
+    os.mkdir("server/keys")
 
 #Generate server private and public keys
 server_key = RSA.generate(2048)
