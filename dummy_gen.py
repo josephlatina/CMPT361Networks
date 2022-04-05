@@ -19,30 +19,33 @@ for i in range(5):
         # build source username
         srcusr = "client"+str(5-i)
 
+        # build title
+        title = "message about "+str(n)+" cats and "+str(i)+" dogs"
+
         # open and write to file:
         # (source username)_(title).txt
-        f = open(dir+"/"+srcusr+"_"+"title"+str(n)+".txt","w")
+        f = open(dir+"/"+srcusr+"_"+title+".txt","w")
 
         # make message source clientx where x = (5-i)  
-        f.write(srcusr+'\n')
+        f.write("From: "+srcusr+'\n')
 
         # make message destination for user 'i'
-        f.write(name+'\n')
+        f.write("To: "+name+'\n')
 
         # write a random time and date
-        f.write(str(datetime(2020,4,19+n,6+i,n+i))+'\n')
+        f.write("Time and Date Recieved: "+str(datetime(2020,4,19+n,6+i,n+i,n*i,int((n+1)/(i+1))))+'\n')
 
         # write title 
-        f.write("This is a message "+str(n)+" for client "+str(i)+'\n')
+        f.write("Title: "+title+'\n')
         
         # build message
         msg = "This is the message content. Lorem ipsum whatever yeah. Have a good day "+name+"!"
 
         # write message length
-        f.write(str(len(msg))+'\n')
+        f.write("Content Length: "+str(len(msg))+'\n')
 
         # write message content
-        f.write(msg+'\n')
+        f.write("Contents:\n"+msg)
 
         # close stream
         f.close()
