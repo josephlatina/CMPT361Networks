@@ -309,10 +309,25 @@ def server():
                         encryptedIndex = connectionSocket.recv(2048)
                         index = unpad(cipher.decrypt(encryptedIndex), 16).decode('ascii')
 
-                        #look for title
-                        
+                        #get the file associated with the index
+                        fullTitle = get_file(username,index)
+                        userPath = sys.path[0] + "/" + username
+            
+                        #open the file to read, get the size and send it to the client
+                        with open(os.path.join(userPath, fullTitle),"r") as f:
+                        viewFile = f.read()
+                        sizeOfFile = str(len(viewFile))
+                        encryptedMessage = cipher.encrypt(pad(sizeOfFile.encode('ascii'), 16))
+                        connectionSocket.send(encryptedMessage)
+                
+                        #recieves the okay to send file (dummy recv)
+                        decryptedMessage = connectionSocket.recv(2048)
+                        message = unpad(cipher.decrypt(encrypted_menu), 16).decode('ascii')
 
-                        pass
+                        #Send file
+                        encryptedMessage = cipher.encrypt(pad(viewFile.encode('ascii'), 16))
+                        connectionSocket.send(encryptedMessage)
+                        
                     #Receive client choice
                     encrypted_choice = connectionSocket.recv(2048)
                     choice = unpad(cipher.decrypt(encrypted_choice), 16).decode('ascii')
