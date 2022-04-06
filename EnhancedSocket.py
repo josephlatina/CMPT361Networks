@@ -14,10 +14,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Hash import SHA256
-from Crypto.PublicKey import ECC
-from Crypto.Signature import DSS
-
-
+from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 
 # Socket enhancement wrapper over an active socket connection. 
 class EnhancedSocket:
@@ -25,20 +22,22 @@ class EnhancedSocket:
     # A wrapper around a typical socket connection that manages integrity hashing.
     #   connectionSocket: An insecure socket connection which implements send() and recv() 
     #   cipher: The RSA cipher
-    def __init__(self,connectionSocket,cipher):
+    def __init__(self,connectionSocket,cipher,signer,verifier):
         self.sock = connectionSocket
         self.cipher = cipher
+        self.signer = signer
+        self.verifier = verifier
 
     def encrypt(self,bytes):
         return self.cipher.encrypt(pad(bytes, 16))
     
     def decrypt(self,enc_bytes):
-        return unpad(self.cipher.decrypt(self.sock.recv(enc_bytes)), 16)
+        return unpad(self.cipher.decrypt(enc_bytes), 16)
     
     def send(self,bytes):
         # create hash and sign
         hash = SHA256.new(bytes)
-        sig = self.cipher.sign(hash)
+        sig = self.signer.sign(hash)
         # send signature
         self.sock.send(self.cipher.encrypt(sig))
         # send encrypted bytes
@@ -55,7 +54,7 @@ class EnhancedSocket:
 
         # verify hash
         try:
-            self.cipher.verify(h, sig)
+            self.verifier.verify(hash, sig)
         except ValueError:
             print("Error: Hash signature does not match.")
 
@@ -114,6 +113,8 @@ class EnhancedServer:
                     #create cipher block for decryption
                     privkey = RSA.import_key(key)
                     cipher_dec = PKCS1_OAEP.new(privkey)
+                    # Create PKCS verifier
+                    self.signer = PKCS115_SigScheme(privkey)
 
                 #Receive client message and decrypt message
                 encrypted_message = connectionSocket.recv(2048)
@@ -139,6 +140,8 @@ class EnhancedServer:
                         #create cipher block for encryption
                         pubkey = RSA.import_key(key)
                         cipher_enc = PKCS1_OAEP.new(pubkey)
+                        # Create PKCS verifier
+                        self.verifier = PKCS115_SigScheme(pubkey)
 
                     #generate sym pw and send to client
                     KeyLen = 256
@@ -158,10 +161,14 @@ class EnhancedServer:
                     return
 
                 #Generate ciphering block for symm key
-                cipher = AES.new(sym_key, AES.MODE_ECB)
+                self.cipher = AES.new(sym_key, AES.MODE_ECB)
+
+                #Receive client response
+                enc_response = connectionSocket.recv(2048)
+                response = unpad(self.cipher.decrypt(enc_response), 16).decode('ascii')
 
                 # Perform the client handling callback
-                callback(EnhancedSocket(connectionSocket,cipher))               
+                callback(EnhancedSocket(connectionSocket,self.cipher,self.signer,self.verifier))               
 
             # 2: For parent process
             else:
@@ -170,9 +177,69 @@ class EnhancedServer:
         #If error occurred during connection with client
         except socket.error as e:
             print("an error occurred while connecting: ", e)
-            serverSocket.close()
+            self.serverSocket.close()
             sys.exit(1)
 
 class EnhancedClient:
 
-    def __init__(self):
+    # Start a client connection to a server.
+    def __init__(self,callback,serverName,serverPort,username,password):
+        #Create client socket using IPv4 and TCP protocols
+        try:
+            clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error as e:
+            print("Error in client socket creation:", e)
+            sys.exit(1)
+
+        #Connect client with the server
+        try:
+            clientSocket.connect((serverName, serverPort))
+            user_pass = username + " " + password
+
+            #import server public key
+            with open(os.path.join(sys.path[0], "keys", "server_public.pem"), "rb") as f:
+                key = f.read()
+                #create cipher block for encryption
+                pubkey = RSA.import_key(key)
+                cipher_enc = PKCS1_OAEP.new(pubkey)
+                # Create PKCS verifier
+                self.verifier = PKCS115_SigScheme(pubkey)
+
+            #send username and pw to server (encrypted with server public key)
+            encrypted_user_pass = cipher_enc.encrypt(user_pass.encode('ascii'))
+            clientSocket.send(encrypted_user_pass)
+
+            #accept server reply
+            response = clientSocket.recv(2048)
+            #if invalid user, terminate connection
+            if (response == "Invalid username or password".encode('ascii')):
+                print("Invalid username or password.\nTerminating.")
+                clientSocket.close()
+                return
+            #otherwise, store the received symmetric key
+            else:
+                #import client private key
+                clientkeypath = username + "_private.pem"
+                with open(os.path.join(sys.path[0], "keys", clientkeypath), "rb+") as f:
+                    key = f.read()
+                    #create cipher block for encryption
+                    privkey = RSA.import_key(key)
+                    # Create PKCS signer
+                    self.signer = PKCS115_SigScheme(privkey)
+                    cipher_dec = PKCS1_OAEP.new(privkey)
+                #decrypt symm key (decrypted with client private key)
+                sym_key = cipher_dec.decrypt(response)
+
+            #Generate ciphering block for symm key
+            cipher = AES.new(sym_key, AES.MODE_ECB)
+            #send "OK" message to server encrypted with symm key
+            encrypted_ok = cipher.encrypt(pad("OK".encode('ascii'), 16))
+            clientSocket.send(encrypted_ok)
+
+            callback(EnhancedSocket(clientSocket,cipher,self.signer,self.verifier))
+
+        #If error occurred during connection with server
+        except socket.error as e:
+            print('An error occurred during connection: ', e)
+            clientSocket.close()
+            sys.exit(1)

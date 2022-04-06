@@ -11,6 +11,8 @@ from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
+sys.path.append("../")
+from EnhancedSocket import EnhancedSocket, EnhancedClient, EnhancedServer
 
 user_inbox = {}
 
@@ -136,8 +138,8 @@ def client_handle(sock):
         os.mkdir("client3")
         os.mkdir("client4")
         os.mkdir("client5") 
-    #Receive client response and send menu
-    response = sock.recv(2048).decode('ascii')
+    
+    # Send menu
     menu = "Select the operation:\n\t1) Create and send an email\n\t2) Display the inbox list\n\t3) Display the email contents\n\t4) Terminate the connection\n\n\tchoice: "
     sock.send(menu.encode('ascii')) 
     #Receive client choice
