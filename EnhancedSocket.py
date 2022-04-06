@@ -39,14 +39,14 @@ class EnhancedSocket:
         hash = SHA256.new(bytes)
         sig = self.signer.sign(hash)
         # send signature
-        self.sock.send(self.cipher.encrypt(sig))
+        self.sock.send(self.encrypt(sig))
         # send encrypted bytes
         self.sock.send(self.encrypt(bytes)) 
         return
 
     def recv(self,maxbytes):
         # recieve signature and bytes, decrypt both
-        sig = self.decrypt(self.sock.recv(32))
+        sig = self.decrypt(self.sock.recv(2048))
         bytes = self.decrypt(self.sock.recv(maxbytes)) 
 
         # generate a hash from decrypted bytes

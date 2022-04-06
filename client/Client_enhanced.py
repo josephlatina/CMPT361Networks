@@ -18,7 +18,7 @@ def tablestr(text,length):
     dif = int(length)-len(text)
     return text+(" "*dif*(dif > 0))
 
-def viewinbox_handle(csock,cipher):
+def viewinbox_handle(csock):
     # wait for server to sort list and send list length and pretty printing table lengths
     header_enc = csock.recv(2048)
     inbox_len, index_len, from_len, dt_len, title_len = (unpad(cipher.decrypt(header_enc), 16).decode('ascii')).split(";")
@@ -49,6 +49,7 @@ def connection_handle(sock):
     choice = input(menu)
     while (int(choice) != 4):
         #send user choice to server (encrypted with symm key)
+        print("sending choice")
         sock.send(choice.encode('ascii'))
         #start the associated subprotocols
         
