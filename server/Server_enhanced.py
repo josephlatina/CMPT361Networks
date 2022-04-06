@@ -118,7 +118,7 @@ def view_inbox(username, sock):
     # Send encrypted header data
     sock.send(header.encode('ascii'))
     # block until confirmation from client
-    sock.recv(1)
+    sock.recv(2048)
 
     # Encrypt and send each table item
     inbox_len = len(inbox)
@@ -128,9 +128,9 @@ def view_inbox(username, sock):
         datastr = str(i+1)+";"+src+";"+str(dt)+";"+title
         sock.send(datastr.encode('ascii'))
         # block until confirmation from client
-        sock.recv(1)
+        sock.recv(2048)
 
-def client_handle(sock):
+def client_handle(sock,username):
     #Create 5 directory inboxes for the 5 clients, skips this step if they already exists
     if not os.path.exists("client1"):
         os.mkdir("client1")

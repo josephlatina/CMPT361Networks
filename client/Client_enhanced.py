@@ -21,7 +21,7 @@ def tablestr(text,length):
 def viewinbox_handle(csock):
     # wait for server to sort list and send list length and pretty printing table lengths
     header_enc = csock.recv(2048)
-    inbox_len, index_len, from_len, dt_len, title_len = (unpad(cipher.decrypt(header_enc), 16).decode('ascii')).split(";")
+    inbox_len, index_len, from_len, dt_len, title_len = header_enc.decode('ascii').split(";")
 
     # print table header
     header = tablestr("Index",index_len)+'    '+tablestr("From",from_len)+'    '+tablestr("DateTime",dt_len)+'    '+tablestr("Title",title_len)
@@ -34,7 +34,7 @@ def viewinbox_handle(csock):
     inbox = []
     for i in range(int(inbox_len)):
         next = csock.recv(2048)
-        index, src, dt, title = (unpad(cipher.decrypt(next), 16).decode('ascii')).split(";")
+        index, src, dt, title = next.decode('ascii').split(";")
         # print contents
         contents = tablestr(index,index_len)+'    '+tablestr(src,from_len)+'    '+tablestr(dt,dt_len)+'    '+tablestr(title,title_len)
         print(contents)
@@ -42,14 +42,13 @@ def viewinbox_handle(csock):
         # signal the client is ready for the next list item
         csock.send("0".encode('ascii'))
 
-def connection_handle(sock):
+def connection_handle(sock,username):
     #Receive and print menu to user (decrypted with symm key)
     menu = sock.recv(2048).decode('ascii')
     #Loop for user to interact with menu
     choice = input(menu)
     while (int(choice) != 4):
         #send user choice to server (encrypted with symm key)
-        print("sending choice")
         sock.send(choice.encode('ascii'))
         #start the associated subprotocols
         
@@ -63,7 +62,7 @@ def connection_handle(sock):
             sock.send(fullMessage.encode('ascii'))
             
             #Recieve the okay to send content (dummy recv)
-            decryptedMessage = clientSocket.recv(2048).decode('ascii')
+            decryptedMessage = sock.recv(2048).decode('ascii')
             #send content to server
             sock.send(contentMessage.encode('ascii'))
             print("The message is sent to the server.")

@@ -40,13 +40,16 @@ class EnhancedSocket:
         sig = self.signer.sign(hash)
         # send signature
         self.sock.send(self.encrypt(sig))
+        # recieve confirmation
+        self.sock.recv(2048)
         # send encrypted bytes
         self.sock.send(self.encrypt(bytes)) 
         return
 
     def recv(self,maxbytes):
-        # recieve signature and bytes, decrypt both
+        # recieve signature, confirm, recieve bytes, decrypt both
         sig = self.decrypt(self.sock.recv(2048))
+        self.sock.send(self.encrypt("0".encode('ascii')))
         bytes = self.decrypt(self.sock.recv(maxbytes)) 
 
         # generate a hash from decrypted bytes
@@ -168,7 +171,7 @@ class EnhancedServer:
                 response = unpad(self.cipher.decrypt(enc_response), 16).decode('ascii')
 
                 # Perform the client handling callback
-                callback(EnhancedSocket(connectionSocket,self.cipher,self.signer,self.verifier))               
+                callback(EnhancedSocket(connectionSocket,self.cipher,self.signer,self.verifier),username)               
 
             # 2: For parent process
             else:
@@ -236,7 +239,7 @@ class EnhancedClient:
             encrypted_ok = cipher.encrypt(pad("OK".encode('ascii'), 16))
             clientSocket.send(encrypted_ok)
 
-            callback(EnhancedSocket(clientSocket,cipher,self.signer,self.verifier))
+            callback(EnhancedSocket(clientSocket,cipher,self.signer,self.verifier),username)
 
         #If error occurred during connection with server
         except socket.error as e:
